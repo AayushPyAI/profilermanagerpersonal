@@ -142,8 +142,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const userObjectId = new mongoose.Types.ObjectId(payload.userId);
+    const projectObjectIds = finalProjectIds.map((id) => new mongoose.Types.ObjectId(id));
+
     const profile = await Profile.create({
-      userId: payload.userId,
+      userId: userObjectId,
       name: personal.name,
       email: personal.email,
       phone: personal.phone || '',
@@ -158,12 +161,18 @@ export async function POST(request: NextRequest) {
       education: education || [],
       experience: experience || [],
       projects: [],
-      projectIds: finalProjectIds,
+      projectIds: projectObjectIds,
       skills: skills || [],
       certification: certification || [],
     });
 
     const populatedProfile = await Profile.findById(profile._id).populate('projectIds');
+    if (!populatedProfile) {
+      return NextResponse.json(
+        { error: 'Profile created but failed to load' },
+        { status: 500 }
+      );
+    }
     const profileObj = populatedProfile.toObject() as any;
     if (profileObj.projectIds && profileObj.projectIds.length > 0) {
       profileObj.projects = profileObj.projectIds;
@@ -183,4 +192,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
